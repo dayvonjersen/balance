@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 )
 
@@ -47,33 +49,60 @@ func writeRegister(register []*registerEntry) error {
 	return nil
 }
 
-func main() {
-	register := []*registerEntry{
-		&registerEntry{time.Now(), "initial amount", 69},
-		&registerEntry{time.Now(), "deposit", 5000},
-		&registerEntry{time.Now(), "melatonin", -1199},
-		&registerEntry{time.Now(), "phone", -2694},
-	}
-	if err := writeRegister(register); err != nil {
+func checkErr(err error) {
+	if err != nil {
 		panic(err)
 	}
+}
+
+func main() {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Content-Type", "text/html")
+
+		register, err := getRegister()
+		if err != nil {
+			fmt.Fprintln(w, "ERROR:", err)
+			return
+		}
+
+		if r.Method == "POST" {
+			checkErr(r.ParseForm())
+
+			date := time.Now()
+			desc := r.PostForm["desc"][0]
+			amt := r.PostForm["amt"][0]
+
+			amtFloat, _ := strconv.ParseFloat(amt, 64)
+			amount := int64(amtFloat * 100)
+
+			register = append(register, &registerEntry{date, desc, amount})
+			checkErr(writeRegister(register))
+		} else {
+			params := r.URL.Query()
+			if _, ok := params["remove"]; ok {
+				id, _ := strconv.Atoi(params["remove"][0])
+				if id < len(register) {
+					register = append(register[0:id], register[id+1:]...)
+					checkErr(writeRegister(register))
+				}
+			}
+		}
+
 		io.WriteString(w, `
 		<form action="/" method="post">
 			<fieldset>
 				<legend>new entry</legend>
 				<div>
 					<label>date</label>
-					<input type="text" disabled value="(now)">
+					<input type="text" name="date" disabled value="(now)">
 				</div>
 				<div>
 					<label>description</label>
-					<input type="text" value="">
+					<input type="text" name="desc" value="">
 				</div>
 				<div>
 					<label>amount</label>
-					<input type="text" value="">
+					<input type="text" name="amt" value="">
 				</div>
 				<input type="submit" value="enter">
 			</fieldset>
@@ -81,18 +110,14 @@ func main() {
 		<hr>
 		<table border=1>
 			<tr>
+				<th>&nbsp;</th>
 				<th>date</th>
 				<th>transaction</th>
 				<th>amount</th>
 			</tr>`)
 
-		register, err := getRegister()
-		if err != nil {
-			fmt.Fprintln(w, "ERROR:", err)
-			return
-		}
 		var total int64 = 0
-		for _, entry := range register {
+		for i, entry := range register {
 			amt := entry.Amount
 			total += amt
 			var amtSign string
@@ -108,11 +133,13 @@ func main() {
 
 			fmt.Fprintf(w, `
 			<tr>
+				<td><a href="/?remove=%d">X</a></td>
 				<td>%v</td>
 				<td>%s</td>
 				<td>%s%d.%02d</td>
 			</tr>
 			`,
+				i,
 				entry.Date,
 				entry.Description,
 				amtSign,
@@ -128,7 +155,7 @@ func main() {
 		}
 		fmt.Fprintf(w, `
 			<tr>
-				<th colspan=2>total</th>
+				<th colspan=3>total</th>
 				<th>%s%d.%02d</th>
 			</tr>
 		</table>`,
@@ -137,5 +164,6 @@ func main() {
 			total%100,
 		)
 	})
-	http.ListenAndServe(":8080", nil)
+	log.Println("Listening on :8080...")
+	log.Fatalln(http.ListenAndServe(":8080", nil))
 }
