@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -55,8 +56,25 @@ func checkErr(err error) {
 	}
 }
 
+func fileExists(filename string) bool {
+	f, err := os.Open(filename)
+	f.Close()
+	if os.IsNotExist(err) {
+		return false
+	}
+	checkErr(err)
+	return true
+}
+
 func main() {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasPrefix(r.URL.Path, "/public/") {
+			pathOnDisk := "." + r.URL.Path
+			if fileExists(pathOnDisk) {
+				http.ServeFile(w, r, pathOnDisk)
+				return
+			}
+		}
 		w.Header().Add("Content-Type", "text/html")
 
 		register, err := getRegister()
@@ -75,8 +93,10 @@ func main() {
 			amtFloat, _ := strconv.ParseFloat(amt, 64)
 			amount := int64(amtFloat * 100)
 
-			register = append(register, &registerEntry{date, desc, amount})
-			checkErr(writeRegister(register))
+			if amount != 0 {
+				register = append(register, &registerEntry{date, desc, amount})
+				checkErr(writeRegister(register))
+			}
 		} else {
 			params := r.URL.Query()
 			if _, ok := params["remove"]; ok {
@@ -89,6 +109,7 @@ func main() {
 		}
 
 		io.WriteString(w, `
+		<link rel='stylesheet' href='/public/style.css'>
 		<form action="/" method="post">
 			<fieldset>
 				<legend>new entry</legend>
@@ -104,17 +125,20 @@ func main() {
 					<label>amount</label>
 					<input type="text" name="amt" value="">
 				</div>
-				<input type="submit" value="enter">
+				<input class="primary" type="submit" value="enter">
 			</fieldset>
 		</form>
 		<hr>
-		<table border=1>
-			<tr>
+		<table>
+		<thead>
+			<tr class="primary">
 				<th>&nbsp;</th>
-				<th>date</th>
-				<th>transaction</th>
-				<th>amount</th>
-			</tr>`)
+				<th class='left mono'>date</th>
+				<th class='center mono'>transaction</th>
+				<th class='right mono'>amount</th>
+			</tr>
+		</thead>
+		<tbody>`)
 
 		var total int64 = 0
 		for i, entry := range register {
@@ -133,14 +157,14 @@ func main() {
 
 			fmt.Fprintf(w, `
 			<tr>
-				<td><a href="/?remove=%d">X</a></td>
+				<td class='center'><a href="/?remove=%d">X</a></td>
 				<td>%v</td>
 				<td>%s</td>
-				<td>%s%d.%02d</td>
+				<td class='right mono'>%s%d.%02d</td>
 			</tr>
 			`,
 				i,
-				entry.Date,
+				entry.Date.Format("2006-01-02 15:04 (Monday)"),
 				entry.Description,
 				amtSign,
 				amt/100,
@@ -154,10 +178,13 @@ func main() {
 			total *= -1
 		}
 		fmt.Fprintf(w, `
-			<tr>
-				<th colspan=3>total</th>
-				<th>%s%d.%02d</th>
+		</tbody>
+		<tfoot>
+			<tr class="primary">
+				<th colspan=3 class='right mono'>total</th>
+				<th class='right mono'>%s%d.%02d</th>
 			</tr>
+		</tfoot>
 		</table>`,
 			totalSign,
 			total/100,
