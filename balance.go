@@ -1,3 +1,9 @@
+/*
+	TODO:
+	- better design (css)
+	- floating point errors (±1 cent)
+	- deposit/withdrawal as radio button
+*/
 package main
 
 import (
