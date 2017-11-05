@@ -35,24 +35,55 @@ body {
 }
 
 form fieldset {
-    display: flex;
     border-radius: 3px;
+    border-width: 1px;
+    border-style: solid;
 }
 
-fieldset, hr, table {
+label {
+    user-select: none;
+    font-size: 14px;
+}
+
+fieldset, hr, table, input {
     border-color: #676568;
 }
 
 form fieldset legend {
     color: #676568;
-    font-size: 10px;
-    font-weight: bold;
-    text-align: center;
-    letter-spacing: 3px;
+    font-size: 12px;
 }
 
-form fieldset div {
-    display: inline-block;
+.row {
+    display: flex;
+    justify-content: space-around;
+    margin: 1em 0;
+}
+
+.row > div {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 33%;
+}
+
+.amount {
+    display: flex;
+    align-items: center;
+}
+
+.amount label {
+    font-size: 2.4rem;
+    margin-right: 0.3333em;
+    cursor: pointer;
+}
+
+input[type="text"] {
+    padding: 8px 5px;
+    outline: 0;
+    border-radius: 3px;
+    border-width: 1px;
+    border-style: solid;
 }
 
 form fieldset input[type="submit"] {
@@ -60,6 +91,10 @@ form fieldset input[type="submit"] {
     box-shadow: 2px 2px #676568;
     outline: 0;
     cursor: pointer;
+    transition: 0.1667s ease;
+    padding: 0.3333em 1.3333em;
+    font-size: 16px;
+    border-radius: 3px;
 }
 
 form fieldset input[type="submit"]:active {
@@ -72,17 +107,28 @@ table {
     overflow: auto;
 }
 
+th {
+    padding: 0.3333em 0.6667em;
+}
+
 td {
     font-size: 12px;
+    padding: 5px 10px;
 }
 
 tbody tr:nth-child(2n) {
     background-color: #dbebf9;
 }
 
-.primary {
+input.primary {
     background-color: #184a87;
     color: #fff;
+}
+
+th.primary, .primary th, .primary td {
+    color: #184a87;
+    border: 1px #184a87 solid;
+    border-radius: 3px;
 }
 
 .right {
@@ -99,4 +145,9 @@ tbody tr:nth-child(2n) {
 
 .mono {
     font-family: monospace;
+}
+
+.total {
+    display: flex;
+    justify-content: space-between;
 }
