@@ -119,8 +119,10 @@ func main() {
 		}
 
 		io.WriteString(w, `
+		<meta charset='utf-8'>
 		<title>Transaction Register</title>
 		<link rel='stylesheet' href='/public/style.css'>
+		<script src='/public/main.js'></script>
 		<form action="/" method="post">
 			<fieldset>
 				<legend>new entry</legend>
